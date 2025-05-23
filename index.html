@@ -1,0 +1,1487 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tank Blasters</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Arial Rounded MT Bold', 'Arial', sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(to bottom, #87CEEB, #1E90FF);
+            overflow: hidden;
+            touch-action: manipulation;
+            height: 100vh;
+        }
+        
+        #game-container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+        }
+        
+        #game-canvas {
+            display: block;
+            background-color: #87CEEB;
+        }
+        
+        #ui-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+        
+        #player1-ui, #player2-ui {
+            position: absolute;
+            top: 10px;
+            width: 200px;
+            background-color: rgba(0, 0, 0, 0.5);
+            color: white;
+            padding: 10px;
+            border-radius: 10px;
+            pointer-events: auto;
+        }
+        
+        #player1-ui {
+            left: 10px;
+        }
+        
+        #player2-ui {
+            right: 10px;
+            text-align: right;
+        }
+        
+        .health-bar {
+            height: 20px;
+            background-color: #333;
+            border-radius: 5px;
+            margin: 5px 0;
+            overflow: hidden;
+        }
+        
+        .health-fill {
+            height: 100%;
+            background: linear-gradient(to right, #FF0000, #FF4500);
+            transition: width 0.3s;
+        }
+        
+        #player2-ui .health-fill {
+            float: right;
+        }
+        
+        #weapon-selector {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            background-color: rgba(0, 0, 0, 0.5);
+            padding: 10px;
+            border-radius: 10px;
+            pointer-events: auto;
+        }
+        
+        .weapon-btn {
+            width: 60px;
+            height: 60px;
+            margin: 0 5px;
+            background-color: #444;
+            border: 3px solid #666;
+            border-radius: 10px;
+            color: white;
+            font-size: 12px;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+        
+        .weapon-btn:hover, .weapon-btn.selected {
+            background-color: #666;
+            border-color: #888;
+            transform: scale(1.1);
+        }
+        
+        .weapon-icon {
+            font-size: 20px;
+            margin-bottom: 5px;
+        }
+        
+        #power-meter {
+            position: absolute;
+            bottom: 100px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 200px;
+            height: 30px;
+            background-color: rgba(0, 0, 0, 0.5);
+            border-radius: 15px;
+            overflow: hidden;
+            pointer-events: none;
+        }
+        
+        #power-fill {
+            height: 100%;
+            background: linear-gradient(to right, #4CAF50, #8BC34A);
+            width: 0%;
+        }
+        
+        #angle-indicator {
+            position: absolute;
+            bottom: 150px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: white;
+            font-size: 20px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+            pointer-events: none;
+        }
+        
+        #wind-display {
+            position: absolute;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: white;
+            font-size: 20px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+            background-color: rgba(0, 0, 0, 0.5);
+            padding: 5px 15px;
+            border-radius: 20px;
+            pointer-events: none;
+        }
+        
+        #message-display {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-size: 30px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+            text-align: center;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.5s;
+        }
+        
+        #menu {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+        }
+        
+        .menu-title {
+            color: white;
+            font-size: 48px;
+            margin-bottom: 30px;
+            text-shadow: 0 0 10px #FF4500;
+        }
+        
+        .menu-btn {
+            background-color: #FF4500;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            margin: 10px;
+            font-size: 20px;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: 0 5px 0 #CC3700;
+        }
+        
+        .menu-btn:hover {
+            background-color: #FF5500;
+            transform: translateY(-2px);
+        }
+        
+        .menu-btn:active {
+            transform: translateY(3px);
+            box-shadow: 0 2px 0 #CC3700;
+        }
+        
+        #tank-selector {
+            display: flex;
+            margin: 20px 0;
+        }
+        
+        .tank-option {
+            width: 100px;
+            height: 100px;
+            margin: 0 15px;
+            background-color: #444;
+            border: 3px solid #666;
+            border-radius: 10px;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+        
+        .tank-option:hover, .tank-option.selected {
+            background-color: #666;
+            border-color: #888;
+            transform: scale(1.1);
+        }
+        
+        .tank-icon {
+            font-size: 40px;
+            margin-bottom: 5px;
+        }
+        
+        #game-over {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+        }
+        
+        .game-over-title {
+            color: white;
+            font-size: 48px;
+            margin-bottom: 20px;
+            text-shadow: 0 0 10px #FF4500;
+        }
+        
+        .game-over-winner {
+            color: gold;
+            font-size: 36px;
+            margin-bottom: 30px;
+            text-shadow: 0 0 5px #FFD700;
+        }
+        
+        @media (max-width: 768px) {
+            #player1-ui, #player2-ui {
+                width: 150px;
+                font-size: 12px;
+            }
+            
+            .weapon-btn {
+                width: 50px;
+                height: 50px;
+                font-size: 10px;
+            }
+            
+            .weapon-icon {
+                font-size: 16px;
+            }
+            
+            #power-meter {
+                width: 150px;
+                height: 25px;
+                bottom: 90px;
+            }
+            
+            #angle-indicator {
+                bottom: 130px;
+                font-size: 16px;
+            }
+            
+            #wind-display {
+                font-size: 16px;
+            }
+            
+            .menu-title {
+                font-size: 36px;
+            }
+            
+            .menu-btn {
+                padding: 12px 24px;
+                font-size: 16px;
+            }
+            
+            .tank-option {
+                width: 80px;
+                height: 80px;
+                margin: 0 10px;
+            }
+            
+            .tank-icon {
+                font-size: 30px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <canvas id="game-canvas"></canvas>
+        
+        <div id="ui-overlay">
+            <div id="player1-ui">
+                <div class="player-name">Player 1</div>
+                <div class="health-bar">
+                    <div class="health-fill" id="player1-health"></div>
+                </div>
+                <div class="tank-type" id="player1-tank">Basic Tank</div>
+                <div class="fuel" id="player1-fuel">Fuel: 100%</div>
+            </div>
+            
+            <div id="player2-ui">
+                <div class="player-name">Player 2</div>
+                <div class="health-bar">
+                    <div class="health-fill" id="player2-health"></div>
+                </div>
+                <div class="tank-type" id="player2-tank">Basic Tank</div>
+                <div class="fuel" id="player2-fuel">Fuel: 100%</div>
+            </div>
+            
+            <div id="power-meter">
+                <div id="power-fill"></div>
+            </div>
+            
+            <div id="angle-indicator">
+                Angle: 45°
+            </div>
+            
+            <div id="wind-display">
+                Wind: → 0 m/s
+            </div>
+            
+            <div id="weapon-selector">
+                <button class="weapon-btn selected" data-weapon="shell">
+                    <div class="weapon-icon">💣</div>
+                    <div>Shell</div>
+                </button>
+                <button class="weapon-btn" data-weapon="missile">
+                    <div class="weapon-icon">🚀</div>
+                    <div>Missile</div>
+                </button>
+                <button class="weapon-btn" data-weapon="laser">
+                    <div class="weapon-icon">🔮</div>
+                    <div>Laser</div>
+                </button>
+                <button class="weapon-btn" data-weapon="airStrike">
+                    <div class="weapon-icon">✈️</div>
+                    <div>Airstrike</div>
+                </button>
+                <button class="weapon-btn" data-weapon="nuke">
+                    <div class="weapon-icon">☢️</div>
+                    <div>Nuke</div>
+                </button>
+            </div>
+            
+            <div id="message-display">
+                Player 1's Turn
+            </div>
+        </div>
+        
+        <div id="menu">
+            <div class="menu-title">TANK BLASTERS</div>
+            <div id="tank-selector">
+                <div class="tank-option selected" data-tank="basic">
+                    <div class="tank-icon">🚜</div>
+                    <div>Basic</div>
+                </div>
+                <div class="tank-option" data-tank="heavy">
+                    <div class="tank-icon">🚛</div>
+                    <div>Heavy</div>
+                </div>
+                <div class="tank-option" data-tank="fast">
+                    <div class="tank-icon">🏎️</div>
+                    <div>Fast</div>
+                </div>
+                <div class="tank-option" data-tank="hover">
+                    <div class="tank-icon">🛸</div>
+                    <div>Hover</div>
+                </div>
+            </div>
+            <button class="menu-btn" id="single-player-btn">Single Player</button>
+            <button class="menu-btn" id="multi-player-btn">Multiplayer</button>
+        </div>
+        
+        <div id="game-over">
+            <div class="game-over-title">GAME OVER</div>
+            <div class="game-over-winner" id="winner-text">Player 1 Wins!</div>
+            <button class="menu-btn" id="play-again-btn">Play Again</button>
+            <button class="menu-btn" id="main-menu-btn">Main Menu</button>
+        </div>
+    </div>
+
+    <script>
+        // Game constants
+        const GAME_WIDTH = window.innerWidth;
+        const GAME_HEIGHT = window.innerHeight;
+        const GROUND_HEIGHT = 100;
+        const GRAVITY = 0.2;
+        const MAX_WIND = 5;
+        
+        // Game variables
+        let canvas, ctx;
+        let gameActive = false;
+        let currentPlayer = 1;
+        let terrain = [];
+        let tanks = [];
+        let projectiles = [];
+        let explosions = [];
+        let particles = [];
+        let wind = 0;
+        let power = 0;
+        let isCharging = false;
+        let angle = 45;
+        let selectedWeapon = 'shell';
+        let selectedTank = 'basic';
+        let gameMode = null;
+        let aiThinking = false;
+        let turnTime = 0;
+        const MAX_TURN_TIME = 30000; // 30 seconds per turn
+        
+        // Tank types
+        const TANK_TYPES = {
+            basic: { health: 100, fuel: 100, color: '#4CAF50', special: null },
+            heavy: { health: 150, fuel: 70, color: '#F44336', special: 'shield' },
+            fast: { health: 80, fuel: 150, color: '#2196F3', special: 'doubleJump' },
+            hover: { health: 90, fuel: 120, color: '#9C27B0', special: 'hover' }
+        };
+        
+        // Weapon types
+        const WEAPONS = {
+            shell: { damage: 30, radius: 30, speed: 8, gravity: true, cost: 0, ammo: Infinity },
+            missile: { damage: 40, radius: 40, speed: 10, gravity: true, cost: 10, ammo: 5, guided: true },
+            laser: { damage: 50, radius: 10, speed: 20, gravity: false, cost: 15, ammo: 3, instant: true },
+            airStrike: { damage: 60, radius: 50, speed: 5, gravity: true, cost: 20, ammo: 2, area: true },
+            nuke: { damage: 80, radius: 80, speed: 5, gravity: true, cost: 30, ammo: 1, area: true }
+        };
+        
+        // Sound effects
+        const sounds = {
+            shoot: new Audio('data:audio/wav;base64,UklGRl9vT19XQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YU...'),
+            explosion: new Audio('data:audio/wav;base64,UklGRl9vT19XQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YU...'),
+            hit: new Audio('data:audio/wav;base64,UklGRl9vT19XQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YU...'),
+            move: new Audio('data:audio/wav;base64,UklGRl9vT19XQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YU...')
+        };
+        
+        // Initialize the game
+        function init() {
+            canvas = document.getElementById('game-canvas');
+            ctx = canvas.getContext('2d');
+            
+            // Set canvas size
+            resizeCanvas();
+            window.addEventListener('resize', resizeCanvas);
+            
+            // Generate terrain
+            generateTerrain();
+            
+            // Setup event listeners
+            setupEventListeners();
+            
+            // Start game loop
+            requestAnimationFrame(gameLoop);
+        }
+        
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            
+            if (gameActive) {
+                // Redraw everything when resizing
+                draw();
+            }
+        }
+        
+        function generateTerrain() {
+            terrain = [];
+            const terrainPoints = 50;
+            const segmentWidth = canvas.width / terrainPoints;
+            
+            // Generate random terrain with Perlin-like noise
+            let baseHeight = canvas.height - GROUND_HEIGHT - Math.random() * 50;
+            let amplitude = 50 + Math.random() * 100;
+            let frequency = 0.05;
+            
+            for (let i = 0; i <= terrainPoints; i++) {
+                let x = i * segmentWidth;
+                let noise = Math.sin(i * frequency) * amplitude;
+                let y = baseHeight + noise;
+                
+                // Ensure the terrain stays within bounds
+                y = Math.max(canvas.height - GROUND_HEIGHT * 2, Math.min(canvas.height - 50, y));
+                
+                terrain.push({ x, y });
+            }
+            
+            // Add the bottom corners to complete the polygon
+            terrain.push({ x: canvas.width, y: canvas.height });
+            terrain.push({ x: 0, y: canvas.height });
+        }
+        
+        function setupEventListeners() {
+            // Menu buttons
+            document.getElementById('single-player-btn').addEventListener('click', () => {
+                startGame('single');
+            });
+            
+            document.getElementById('multi-player-btn').addEventListener('click', () => {
+                startGame('multi');
+            });
+            
+            document.getElementById('play-again-btn').addEventListener('click', () => {
+                resetGame();
+                startGame(gameMode);
+            });
+            
+            document.getElementById('main-menu-btn').addEventListener('click', () => {
+                resetGame();
+                document.getElementById('menu').style.display = 'flex';
+                document.getElementById('game-over').style.display = 'none';
+            });
+            
+            // Tank selection
+            document.querySelectorAll('.tank-option').forEach(option => {
+                option.addEventListener('click', function() {
+                    document.querySelectorAll('.tank-option').forEach(opt => opt.classList.remove('selected'));
+                    this.classList.add('selected');
+                    selectedTank = this.getAttribute('data-tank');
+                });
+            });
+            
+            // Weapon selection
+            document.querySelectorAll('.weapon-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    if (gameActive && parseInt(this.getAttribute('data-ammo')) > 0) {
+                        document.querySelectorAll('.weapon-btn').forEach(b => b.classList.remove('selected'));
+                        this.classList.add('selected');
+                        selectedWeapon = this.getAttribute('data-weapon');
+                    }
+                });
+            });
+            
+            // Keyboard controls
+            document.addEventListener('keydown', handleKeyDown);
+            document.addEventListener('keyup', handleKeyUp);
+            
+            // Touch controls for mobile
+            canvas.addEventListener('touchstart', handleTouchStart, { passive: false });
+            canvas.addEventListener('touchmove', handleTouchMove, { passive: false });
+            canvas.addEventListener('touchend', handleTouchEnd, { passive: false });
+            
+            // Mouse controls
+            canvas.addEventListener('mousedown', handleMouseDown);
+            canvas.addEventListener('mousemove', handleMouseMove);
+            canvas.addEventListener('mouseup', handleMouseUp);
+        }
+        
+        function startGame(mode) {
+            gameMode = mode;
+            gameActive = true;
+            
+            // Hide menu
+            document.getElementById('menu').style.display = 'none';
+            
+            // Reset game state
+            resetGame();
+            
+            // Create tanks
+            createTanks();
+            
+            // Set initial wind
+            updateWind();
+            
+            // Start first turn
+            startTurn();
+        }
+        
+        function resetGame() {
+            tanks = [];
+            projectiles = [];
+            explosions = [];
+            particles = [];
+            currentPlayer = 1;
+            power = 0;
+            angle = 45;
+            selectedWeapon = 'shell';
+            turnTime = 0;
+            
+            // Regenerate terrain
+            generateTerrain();
+            
+            // Update UI
+            updateUI();
+        }
+        
+        function createTanks() {
+            // Find suitable positions for tanks
+            const tank1Pos = findTankPosition(0.2);
+            const tank2Pos = findTankPosition(0.8);
+            
+            // Create player 1 tank
+            tanks.push({
+                player: 1,
+                x: tank1Pos.x,
+                y: tank1Pos.y,
+                width: 50,
+                height: 30,
+                angle: 0,
+                health: TANK_TYPES[selectedTank].health,
+                maxHealth: TANK_TYPES[selectedTank].health,
+                fuel: TANK_TYPES[selectedTank].fuel,
+                maxFuel: TANK_TYPES[selectedTank].fuel,
+                type: selectedTank,
+                color: TANK_TYPES[selectedTank].color,
+                special: TANK_TYPES[selectedTank].special,
+                ammo: { ...WEAPONS }
+            });
+            
+            // Create player 2 tank
+            const aiTankType = gameMode === 'single' ? 
+                Object.keys(TANK_TYPES)[Math.floor(Math.random() * Object.keys(TANK_TYPES).length)] : 
+                selectedTank;
+                
+            tanks.push({
+                player: 2,
+                x: tank2Pos.x,
+                y: tank2Pos.y,
+                width: 50,
+                height: 30,
+                angle: Math.PI,
+                health: TANK_TYPES[aiTankType].health,
+                maxHealth: TANK_TYPES[aiTankType].health,
+                fuel: TANK_TYPES[aiTankType].fuel,
+                maxFuel: TANK_TYPES[aiTankType].fuel,
+                type: aiTankType,
+                color: gameMode === 'single' ? '#FF5722' : TANK_TYPES[aiTankType].color,
+                special: TANK_TYPES[aiTankType].special,
+                ammo: { ...WEAPONS }
+            });
+            
+            // Update tank info in UI
+            document.getElementById('player1-tank').textContent = `${selectedTank.charAt(0).toUpperCase() + selectedTank.slice(1)} Tank`;
+            document.getElementById('player2-tank').textContent = `${gameMode === 'single' ? 'AI' : 'Player 2'} - ${aiTankType.charAt(0).toUpperCase() + aiTankType.slice(1)} Tank`;
+        }
+        
+        function findTankPosition(xPercent) {
+            const targetX = canvas.width * xPercent;
+            let bestX = 0;
+            let bestY = canvas.height;
+            let bestScore = Infinity;
+            
+            // Find the closest terrain point to the target X position
+            for (let i = 0; i < terrain.length - 2; i++) {
+                const x = terrain[i].x;
+                const y = terrain[i].y;
+                
+                // Score based on distance to target and flatness of area
+                const xDist = Math.abs(x - targetX);
+                const flatness = Math.abs(terrain[Math.max(0, i-1)].y - terrain[Math.min(terrain.length-3, i+1)].y);
+                const score = xDist * 0.7 + flatness * 0.3;
+                
+                if (score < bestScore) {
+                    bestScore = score;
+                    bestX = x;
+                    bestY = y;
+                }
+            }
+            
+            return { x: bestX, y: bestY - 30 }; // Position tank slightly above ground
+        }
+        
+        function updateWind() {
+            // Random wind between -MAX_WIND and +MAX_WIND
+            wind = (Math.random() * 2 - 1) * MAX_WIND;
+            
+            // Update wind display
+            const windDisplay = document.getElementById('wind-display');
+            windDisplay.textContent = `Wind: ${wind > 0 ? '→' : '←'} ${Math.abs(wind).toFixed(1)} m/s`;
+            windDisplay.style.color = wind > 0 ? '#FF5722' : '#2196F3';
+        }
+        
+        function startTurn() {
+            turnTime = 0;
+            isCharging = false;
+            power = 0;
+            
+            // Update message display
+            const message = document.getElementById('message-display');
+            message.textContent = gameMode === 'single' && currentPlayer === 2 ? 
+                "AI's Turn" : `Player ${currentPlayer}'s Turn`;
+            message.style.opacity = 1;
+            
+            setTimeout(() => {
+                message.style.opacity = 0;
+            }, 2000);
+            
+            // If it's AI's turn in single player mode, let the AI play
+            if (gameMode === 'single' && currentPlayer === 2) {
+                aiThinking = true;
+                setTimeout(aiPlay, 1500);
+            }
+        }
+        
+        function aiPlay() {
+            const aiTank = tanks.find(t => t.player === 2);
+            const playerTank = tanks.find(t => t.player === 1);
+            
+            // Choose a random weapon that has ammo
+            const availableWeapons = Object.keys(aiTank.ammo).filter(w => aiTank.ammo[w].ammo > 0);
+            if (availableWeapons.length === 0) {
+                // No ammo left, skip turn
+                endTurn();
+                return;
+            }
+            
+            selectedWeapon = availableWeapons[Math.floor(Math.random() * availableWeapons.length)];
+            
+            // Update weapon selection in UI
+            document.querySelectorAll('.weapon-btn').forEach(btn => {
+                btn.classList.toggle('selected', btn.getAttribute('data-weapon') === selectedWeapon);
+            });
+            
+            // Calculate angle and power to hit player
+            const dx = playerTank.x - aiTank.x;
+            const dy = playerTank.y - aiTank.y;
+            
+            // Simple AI aiming (could be improved)
+            angle = Math.atan2(dy, dx) * 180 / Math.PI;
+            angle = Math.max(10, Math.min(80, angle)); // Keep angle reasonable
+            
+            // Adjust for wind
+            angle += wind * 2;
+            
+            // Set power based on distance (with some randomness)
+            const distance = Math.sqrt(dx*dx + dy*dy);
+            power = Math.min(100, distance / 5 + Math.random() * 20 - 10);
+            
+            // Fire!
+            setTimeout(() => {
+                fireWeapon();
+                aiThinking = false;
+            }, 1000);
+        }
+        
+        function endTurn() {
+            // Switch players
+            currentPlayer = currentPlayer === 1 ? 2 : 1;
+            
+            // Update wind (slightly change it each turn)
+            wind += (Math.random() * 2 - 1) * 1.5;
+            wind = Math.max(-MAX_WIND, Math.min(MAX_WIND, wind));
+            updateWind();
+            
+            // Start next turn
+            startTurn();
+        }
+        
+        function fireWeapon() {
+            const tank = tanks.find(t => t.player === currentPlayer);
+            if (!tank || tank.ammo[selectedWeapon].ammo <= 0) return;
+            
+            // Use ammo
+            tank.ammo[selectedWeapon].ammo--;
+            
+            // Play sound
+            sounds.shoot.play();
+            
+            // Create projectile based on selected weapon
+            const weapon = WEAPONS[selectedWeapon];
+            const radAngle = angle * Math.PI / 180;
+            const startX = tank.x + Math.cos(tank.angle) * 30;
+            const startY = tank.y + Math.sin(tank.angle) * 30 - 15;
+            
+            const projectile = {
+                x: startX,
+                y: startY,
+                vx: Math.cos(radAngle) * power * weapon.speed / 10,
+                vy: -Math.sin(radAngle) * power * weapon.speed / 10,
+                gravity: weapon.gravity,
+                radius: 10,
+                weapon: selectedWeapon,
+                player: currentPlayer,
+                guided: weapon.guided,
+                targetX: tanks.find(t => t.player !== currentPlayer).x,
+                targetY: tanks.find(t => t.player !== currentPlayer).y,
+                life: 0
+            };
+            
+            projectiles.push(projectile);
+            
+            // For instant weapons like laser, just create an explosion immediately
+            if (weapon.instant) {
+                createExplosion(
+                    projectile.x + Math.cos(radAngle) * 300,
+                    projectile.y - Math.sin(radAngle) * 300,
+                    weapon.radius,
+                    weapon.damage,
+                    currentPlayer
+                );
+                projectiles.pop(); // Remove the "projectile"
+            }
+            
+            // For area weapons like airstrike, create multiple explosions
+            if (weapon.area) {
+                const targetX = projectile.targetX;
+                const targetY = projectile.targetY;
+                
+                if (selectedWeapon === 'airStrike') {
+                    // Create 3 explosions in a line
+                    for (let i = 0; i < 3; i++) {
+                        setTimeout(() => {
+                            createExplosion(
+                                targetX + (Math.random() * 100 - 50),
+                                targetY + (Math.random() * 50 - 25),
+                                weapon.radius,
+                                weapon.damage / 3,
+                                currentPlayer
+                            );
+                        }, i * 300);
+                    }
+                } else if (selectedWeapon === 'nuke') {
+                    // Create a big explosion with shockwave
+                    setTimeout(() => {
+                        createExplosion(
+                            targetX,
+                            targetY,
+                            weapon.radius,
+                            weapon.damage,
+                            currentPlayer
+                        );
+                        
+                        // Shockwave effect
+                        for (let i = 0; i < 50; i++) {
+                            setTimeout(() => {
+                                createExplosion(
+                                    targetX + (Math.random() * 100 - 50),
+                                    targetY + (Math.random() * 100 - 50),
+                                    weapon.radius / 2,
+                                    10,
+                                    currentPlayer
+                                );
+                            }, i * 50);
+                        }
+                    }, 1000);
+                }
+                
+                projectiles.pop(); // Remove the "projectile"
+            }
+        }
+        
+        function createExplosion(x, y, radius, damage, player) {
+            sounds.explosion.play();
+            
+            explosions.push({
+                x,
+                y,
+                radius: 0,
+                maxRadius: radius,
+                damage,
+                player,
+                life: 0
+            });
+            
+            // Create particles
+            for (let i = 0; i < 30; i++) {
+                particles.push({
+                    x,
+                    y,
+                    vx: Math.random() * 6 - 3,
+                    vy: Math.random() * -6,
+                    color: `hsl(${Math.random() * 30 + 10}, 100%, 50%)`,
+                    size: Math.random() * 5 + 2,
+                    life: 0,
+                    maxLife: Math.random() * 30 + 30
+                });
+            }
+            
+            // Check for tank hits
+            tanks.forEach(tank => {
+                const dist = Math.sqrt((tank.x - x) ** 2 + (tank.y - y) ** 2);
+                if (dist < radius + 25) { // 25 is approx tank size
+                    // Damage decreases with distance
+                    const damageDealt = damage * (1 - Math.min(1, dist / radius));
+                    tank.health -= damageDealt;
+                    
+                    // Show damage indicator
+                    createDamageIndicator(tank.x, tank.y - 30, Math.round(damageDealt));
+                    
+                    // Play hit sound
+                    sounds.hit.play();
+                    
+                    // Check if tank is destroyed
+                    if (tank.health <= 0) {
+                        tank.health = 0;
+                        gameOver(player === 1 ? 2 : 1);
+                    }
+                }
+            });
+            
+            // Destroy terrain
+            destroyTerrain(x, y, radius);
+        }
+        
+        function createDamageIndicator(x, y, amount) {
+            particles.push({
+                x,
+                y,
+                vx: Math.random() * 2 - 1,
+                vy: -2,
+                color: '#FF0000',
+                text: `-${amount}`,
+                life: 0,
+                maxLife: 60
+            });
+        }
+        
+        function destroyTerrain(x, y, radius) {
+            // Modify terrain points within explosion radius
+            for (let i = 0; i < terrain.length - 2; i++) {
+                const point = terrain[i];
+                const dist = Math.sqrt((point.x - x) ** 2 + (point.y - y) ** 2);
+                
+                if (dist < radius) {
+                    // Push the point down to create a crater
+                    const force = (1 - dist / radius) * radius * 0.5;
+                    point.y += force;
+                    
+                    // Add some randomness to make it look more natural
+                    point.y += Math.random() * force * 0.5;
+                    
+                    // Ensure the point doesn't go below canvas bottom
+                    point.y = Math.min(point.y, canvas.height);
+                }
+            }
+            
+            // Smooth the terrain after explosion
+            smoothTerrain();
+        }
+        
+        function smoothTerrain() {
+            // Simple smoothing algorithm
+            for (let i = 1; i < terrain.length - 3; i++) {
+                terrain[i].y = (terrain[i-1].y + terrain[i].y + terrain[i+1].y) / 3;
+            }
+        }
+        
+        function moveTank(direction) {
+            const tank = tanks.find(t => t.player === currentPlayer);
+            if (!tank || tank.fuel <= 0) return;
+            
+            // Calculate movement (left or right)
+            const moveAmount = direction * 3;
+            
+            // Update tank position
+            tank.x += moveAmount;
+            
+            // Find ground level at new position
+            let groundY = findGroundY(tank.x);
+            
+            // Update tank y position (follow terrain)
+            tank.y = groundY - 30;
+            
+            // Update tank angle based on terrain slope
+            const leftGround = findGroundY(tank.x - 25);
+            const rightGround = findGroundY(tank.x + 25);
+            tank.angle = Math.atan2(rightGround - leftGround, 50);
+            
+            // Use fuel
+            tank.fuel -= 0.5;
+            if (tank.fuel <= 0) {
+                tank.fuel = 0;
+            }
+            
+            // Play move sound
+            sounds.move.play();
+            
+            // Update UI
+            updateUI();
+        }
+        
+        function findGroundY(x) {
+            // Find the terrain segment that contains x
+            for (let i = 0; i < terrain.length - 2; i++) {
+                if (x >= terrain[i].x && x <= terrain[i+1].x) {
+                    // Linear interpolation between points
+                    const t = (x - terrain[i].x) / (terrain[i+1].x - terrain[i].x);
+                    return terrain[i].y + t * (terrain[i+1].y - terrain[i].y);
+                }
+            }
+            return canvas.height;
+        }
+        
+        function gameOver(winningPlayer) {
+            gameActive = false;
+            
+            // Show game over screen
+            const gameOverScreen = document.getElementById('game-over');
+            const winnerText = document.getElementById('winner-text');
+            
+            winnerText.textContent = gameMode === 'single' && winningPlayer === 2 ? 
+                "AI Wins!" : `Player ${winningPlayer} Wins!`;
+            
+            gameOverScreen.style.display = 'flex';
+        }
+        
+        function updateUI() {
+            // Update health bars
+            const player1Health = tanks.find(t => t.player === 1).health;
+            const player2Health = tanks.find(t => t.player === 2).health;
+            
+            document.getElementById('player1-health').style.width = `${(player1Health / tanks[0].maxHealth) * 100}%`;
+            document.getElementById('player2-health').style.width = `${(player2Health / tanks[1].maxHealth) * 100}%`;
+            
+            // Update fuel
+            document.getElementById('player1-fuel').textContent = `Fuel: ${Math.round(tanks[0].fuel)}%`;
+            document.getElementById('player2-fuel').textContent = `Fuel: ${Math.round(tanks[1].fuel)}%`;
+            
+            // Update weapon ammo in buttons
+            const tank = tanks.find(t => t.player === currentPlayer);
+            if (tank) {
+                document.querySelectorAll('.weapon-btn').forEach(btn => {
+                    const weapon = btn.getAttribute('data-weapon');
+                    const ammo = tank.ammo[weapon].ammo;
+                    btn.setAttribute('data-ammo', ammo);
+                    
+                    if (ammo <= 0) {
+                        btn.style.opacity = '0.5';
+                        btn.style.cursor = 'not-allowed';
+                    } else {
+                        btn.style.opacity = '1';
+                        btn.style.cursor = 'pointer';
+                    }
+                    
+                    // Update ammo count display
+                    const ammoText = ammo === Infinity ? '∞' : ammo;
+                    btn.querySelector('div:last-child').textContent = `${weapon.charAt(0).toUpperCase() + weapon.slice(1)} (${ammoText})`;
+                });
+            }
+        }
+        
+        function handleKeyDown(e) {
+            if (!gameActive || aiThinking) return;
+            
+            const tank = tanks.find(t => t.player === currentPlayer);
+            
+            switch (e.key) {
+                case 'ArrowLeft':
+                    moveTank(-1);
+                    break;
+                case 'ArrowRight':
+                    moveTank(1);
+                    break;
+                case 'ArrowUp':
+                    angle = Math.min(80, angle + 1);
+                    document.getElementById('angle-indicator').textContent = `Angle: ${angle}°`;
+                    break;
+                case 'ArrowDown':
+                    angle = Math.max(10, angle - 1);
+                    document.getElementById('angle-indicator').textContent = `Angle: ${angle}°`;
+                    break;
+                case ' ':
+                    if (!isCharging) {
+                        isCharging = true;
+                        power = 10;
+                    }
+                    break;
+                case '1':
+                case '2':
+                case '3':
+                case '4':
+                case '5':
+                    const weaponIndex = parseInt(e.key) - 1;
+                    const weapons = Object.keys(WEAPONS);
+                    if (weaponIndex < weapons.length && tank.ammo[weapons[weaponIndex]].ammo > 0) {
+                        selectedWeapon = weapons[weaponIndex];
+                        document.querySelectorAll('.weapon-btn').forEach(btn => {
+                            btn.classList.toggle('selected', btn.getAttribute('data-weapon') === selectedWeapon);
+                        });
+                    }
+                    break;
+                case 'Enter':
+                    if (!isCharging && power > 0) {
+                        fireWeapon();
+                    }
+                    break;
+            }
+        }
+        
+        function handleKeyUp(e) {
+            if (!gameActive || aiThinking) return;
+            
+            if (e.key === ' ') {
+                if (isCharging) {
+                    fireWeapon();
+                    isCharging = false;
+                }
+            }
+        }
+        
+        function handleMouseDown(e) {
+            if (!gameActive || aiThinking) return;
+            
+            isCharging = true;
+            power = 10;
+        }
+        
+        function handleMouseMove(e) {
+            if (!gameActive || aiThinking) return;
+            
+            // For touch devices, angle could be adjusted by swiping up/down
+            // This is a placeholder for more advanced controls
+        }
+        
+        function handleMouseUp(e) {
+            if (!gameActive || aiThinking) return;
+            
+            if (isCharging) {
+                fireWeapon();
+                isCharging = false;
+            }
+        }
+        
+        function handleTouchStart(e) {
+            e.preventDefault();
+            if (!gameActive || aiThinking) return;
+            
+            isCharging = true;
+            power = 10;
+        }
+        
+        function handleTouchMove(e) {
+            e.preventDefault();
+            if (!gameActive || aiThinking) return;
+            
+            // Adjust angle based on touch movement
+            const touch = e.touches[0];
+            const prevTouch = e.touches[1] ? e.touches[1] : null; // For two-finger adjustment
+            
+            // This is a simplified version - could implement more sophisticated controls
+            if (prevTouch) {
+                // Two fingers - adjust angle
+                const deltaY = touch.clientY - prevTouch.clientY;
+                angle = Math.max(10, Math.min(80, angle + deltaY * 0.1));
+                document.getElementById('angle-indicator').textContent = `Angle: ${Math.round(angle)}°`;
+            }
+        }
+        
+        function handleTouchEnd(e) {
+            e.preventDefault();
+            if (!gameActive || aiThinking) return;
+            
+            if (isCharging) {
+                fireWeapon();
+                isCharging = false;
+            }
+        }
+        
+        function update(deltaTime) {
+            if (!gameActive) return;
+            
+            // Update turn timer
+            turnTime += deltaTime;
+            if (turnTime > MAX_TURN_TIME) {
+                endTurn();
+            }
+            
+            // Update charging power
+            if (isCharging) {
+                power += 0.5;
+                if (power > 100) power = 100;
+                document.getElementById('power-fill').style.width = `${power}%`;
+            }
+            
+            // Update projectiles
+            for (let i = projectiles.length - 1; i >= 0; i--) {
+                const p = projectiles[i];
+                p.life += deltaTime;
+                
+                // Apply gravity
+                if (p.gravity) {
+                    p.vy += GRAVITY;
+                }
+                
+                // Apply wind
+                p.vx += wind * 0.01;
+                
+                // Guided missile adjustment
+                if (p.guided && p.life > 30) {
+                    const target = tanks.find(t => t.player !== p.player);
+                    if (target) {
+                        const dx = target.x - p.x;
+                        const dy = target.y - p.y;
+                        const dist = Math.sqrt(dx * dx + dy * dy);
+                        
+                        // Adjust velocity slightly toward target
+                        p.vx += dx / dist * 0.2;
+                        p.vy += dy / dist * 0.2;
+                    }
+                }
+                
+                // Update position
+                p.x += p.vx;
+                p.y += p.vy;
+                
+                // Check for collision with terrain
+                if (p.y >= findGroundY(p.x)) {
+                    const weapon = WEAPONS[p.weapon];
+                    createExplosion(p.x, p.y, weapon.radius, weapon.damage, p.player);
+                    projectiles.splice(i, 1);
+                    continue;
+                }
+                
+                // Check for collision with tanks
+                for (const tank of tanks) {
+                    if (tank.player !== p.player) {
+                        const dist = Math.sqrt((p.x - tank.x) ** 2 + (p.y - tank.y) ** 2);
+                        if (dist < 25) { // 25 is approx tank size
+                            const weapon = WEAPONS[p.weapon];
+                            createExplosion(p.x, p.y, weapon.radius, weapon.damage, p.player);
+                            projectiles.splice(i, 1);
+                            break;
+                        }
+                    }
+                }
+                
+                // Remove projectiles that go off-screen
+                if (p.x < 0 || p.x > canvas.width || p.y > canvas.height) {
+                    projectiles.splice(i, 1);
+                }
+            }
+            
+            // Update explosions
+            for (let i = explosions.length - 1; i >= 0; i--) {
+                const e = explosions[i];
+                e.life += deltaTime;
+                
+                // Grow explosion radius
+                if (e.radius < e.maxRadius) {
+                    e.radius += e.maxRadius * 0.05;
+                }
+                
+                // Remove explosion after it's done
+                if (e.life > 60) {
+                    explosions.splice(i, 1);
+                }
+            }
+            
+            // Update particles
+            for (let i = particles.length - 1; i >= 0; i--) {
+                const p = particles[i];
+                p.life += deltaTime;
+                
+                // Update position
+                p.x += p.vx;
+                p.y += p.vy;
+                
+                // Apply gravity to particles
+                p.vy += GRAVITY * 0.3;
+                
+                // Remove particles that expire
+                if (p.life > p.maxLife) {
+                    particles.splice(i, 1);
+                }
+            }
+            
+            // Check if all projectiles/explosions are done
+            if (projectiles.length === 0 && explosions.length === 0 && !isCharging && power > 0) {
+                // End turn after a short delay
+                setTimeout(() => {
+                    if (projectiles.length === 0 && explosions.length === 0) {
+                        endTurn();
+                    }
+                }, 1000);
+            }
+        }
+        
+        function draw() {
+            // Clear canvas
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Draw sky gradient
+            const skyGradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+            skyGradient.addColorStop(0, '#87CEEB');
+            skyGradient.addColorStop(1, '#1E90FF');
+            ctx.fillStyle = skyGradient;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Draw clouds (simple circles)
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+            for (let i = 0; i < 5; i++) {
+                const x = (Date.now() * 0.01 + i * 100) % (canvas.width + 200) - 100;
+                const y = 50 + i * 80;
+                const size = 30 + i * 10;
+                
+                ctx.beginPath();
+                ctx.arc(x, y, size, 0, Math.PI * 2);
+                ctx.arc(x + size * 0.7, y, size * 0.8, 0, Math.PI * 2);
+                ctx.arc(x - size * 0.7, y, size * 0.8, 0, Math.PI * 2);
+                ctx.arc(x, y - size * 0.4, size * 0.7, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            
+            // Draw terrain
+            ctx.fillStyle = '#8BC34A';
+            ctx.beginPath();
+            ctx.moveTo(terrain[0].x, terrain[0].y);
+            for (let i = 1; i < terrain.length - 2; i++) {
+                ctx.lineTo(terrain[i].x, terrain[i].y);
+            }
+            ctx.lineTo(terrain[terrain.length-2].x, terrain[terrain.length-2].y);
+            ctx.lineTo(terrain[terrain.length-1].x, terrain[terrain.length-1].y);
+            ctx.closePath();
+            ctx.fill();
+            
+            // Draw terrain outline
+            ctx.strokeStyle = '#689F38';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(terrain[0].x, terrain[0].y);
+            for (let i = 1; i < terrain.length - 2; i++) {
+                ctx.lineTo(terrain[i].x, terrain[i].y);
+            }
+            ctx.stroke();
+            
+            // Draw tanks
+            tanks.forEach(tank => {
+                ctx.save();
+                ctx.translate(tank.x, tank.y);
+                ctx.rotate(tank.angle);
+                
+                // Tank body
+                ctx.fillStyle = tank.color;
+                ctx.beginPath();
+                ctx.rect(-tank.width/2, -tank.height/2, tank.width, tank.height);
+                ctx.fill();
+                ctx.strokeStyle = '#333';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+                
+                // Tank turret
+                ctx.fillStyle = '#795548';
+                ctx.beginPath();
+                ctx.rect(-5, -20, 10, 20);
+                ctx.fill();
+                ctx.stroke();
+                
+                // Tank barrel (direction depends on player)
+                const barrelLength = currentPlayer === tank.player && isCharging ? 30 : 25;
+                const barrelAngle = currentPlayer === tank.player ? -angle * Math.PI / 180 : Math.PI - angle * Math.PI / 180;
+                
+                ctx.rotate(barrelAngle);
+                ctx.fillStyle = '#3E2723';
+                ctx.beginPath();
+                ctx.rect(0, -3, barrelLength, 6);
+                ctx.fill();
+                ctx.stroke();
+                
+                // Special ability indicator
+                if (tank.special) {
+                    ctx.fillStyle = 'gold';
+                    ctx.font = '20px Arial';
+                    ctx.fillText(tank.special === 'shield' ? '🛡️' : 
+                                 tank.special === 'doubleJump' ? '✌️' : '🛸', 
+                                 -10, -40);
+                }
+                
+                ctx.restore();
+            });
+            
+            // Draw projectiles
+            projectiles.forEach(p => {
+                ctx.fillStyle = p.weapon === 'laser' ? '#FF5722' : '#795548';
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // Add trail for missiles
+                if (p.weapon === 'missile') {
+                    ctx.strokeStyle = '#FF5722';
+                    ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    ctx.moveTo(p.x, p.y);
+                    ctx.lineTo(p.x - p.vx, p.y - p.vy);
+                    ctx.stroke();
+                }
+            });
+            
+            // Draw explosions
+            explosions.forEach(e => {
+                const gradient = ctx.createRadialGradient(
+                    e.x, e.y, 0,
+                    e.x, e.y, e.radius
+                );
+                gradient.addColorStop(0, `rgba(255, ${100 + e.life * 2}, 0, 0.8)`);
+                gradient.addColorStop(0.7, `rgba(255, ${50 + e.life}, 0, 0.4)`);
+                gradient.addColorStop(1, `rgba(255, ${e.life}, 0, 0)`);
+                
+                ctx.fillStyle = gradient;
+                ctx.beginPath();
+                ctx.arc(e.x, e.y, e.radius, 0, Math.PI * 2);
+                ctx.fill();
+            });
+            
+            // Draw particles
+            particles.forEach(p => {
+                if (p.text) {
+                    // Damage text
+                    ctx.fillStyle = p.color;
+                    ctx.font = '16px Arial';
+                    ctx.fillText(p.text, p.x, p.y);
+                } else {
+                    // Explosion particles
+                    ctx.fillStyle = p.color;
+                    ctx.beginPath();
+                    ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            });
+            
+            // Draw turn timer
+            if (gameActive) {
+                const timeLeft = Math.max(0, (MAX_TURN_TIME - turnTime) / 1000).toFixed(1);
+                ctx.fillStyle = timeLeft < 5 ? '#FF0000' : '#FFFFFF';
+                ctx.font = '20px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText(`${timeLeft}s`, canvas.width / 2, 50);
+                ctx.textAlign = 'left';
+            }
+        }
+        
+        function gameLoop(timestamp) {
+            // Calculate delta time for smooth animation
+            if (!lastTimestamp) {
+                lastTimestamp = timestamp;
+            }
+            const deltaTime = timestamp - lastTimestamp;
+            lastTimestamp = timestamp;
+            
+            // Update and draw game
+            update(deltaTime);
+            draw();
+            
+            // Continue game loop
+            requestAnimationFrame(gameLoop);
+        }
+        
+        let lastTimestamp = 0;
+        
+        // Start the game when the page loads
+        window.addEventListener('load', init);
+    </script>
+</body>
+</html>
